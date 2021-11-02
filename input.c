@@ -76,6 +76,16 @@ void process_input(struct command* input) {
         }
     }
 
+    // Expand $$
+    for(int i = 0; i < input->arg_count; i++) {
+        if(strncmp(input->args[i], "$$", 2) == 0){
+            // Get PID
+            free(input->args[i]);
+            input->args[i] = calloc(8, sizeof(char));
+            sprintf(input->args[i], "%d", getpid());
+        }
+    }
+
     // Search for trailing & for background
     if(input->args[input->arg_count - 1][0] == '&') {
         input->background = true;
