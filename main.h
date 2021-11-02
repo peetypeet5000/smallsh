@@ -4,8 +4,8 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <stdbool.h>
 
-#include "file_parser.h"
-#include "interface.h"
+#include "input.h"
 
 #endif

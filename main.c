@@ -6,29 +6,23 @@ to process file & start user interactive menu
 */
 int main(int argc, char *argv[])
 {
-    // Start base-level menu
+    // Start infinite shell argument
     bool done = false;
-    int selection = 0;
 
     // Keep looping until user is done
     while(done != true) {
-        printf("\n1. Select file to process\n2. Exit the program\nEnter a choice 1 or 2: ");
-        scanf ("%d", &selection);
+        // Check for background processes ending
 
-        switch(selection) {
-            // Enter movie interface
-            case 1:
-                file_menu();
-                break;
-            // Quit the program
-            case 2:
-                done = true;
-                break;
-            // Invalid Choice
-            default:
-                printf("\nYou entered an incorrect choice. Try again.\n");
-                break;
-        }
+        // Print colon & get input
+        struct command input = getCommand();
+
+        //Tokenize input
+
+        // Check for built-in & comments/blanks
+
+        // If not, fork and exec
+
+        // If not forked, waitPID
     }
     
     return EXIT_SUCCESS;
