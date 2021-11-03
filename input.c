@@ -53,6 +53,15 @@ void process_input(struct command* input) {
     // Keep track of how many arguemnts are not from the command itself
     int new_arg_count = input->arg_count;
 
+    // Search for trailing & for background
+    if(input->args[input->arg_count - 1][0] == '&') {
+        input->background = true;
+        // Set redirection to /dev/null by default
+        strncpy(input->input_redirection, "/dev/null", strlen("/dev/null"));
+        strncpy(input->output_redirection, "/dev/null", strlen("/dev/null"));
+        new_arg_count--;
+    }
+
     // Serach for input redirection
     for(int i = 0; i < input->arg_count; i++) {
         if(input->args[i][0] == '<'){
@@ -85,12 +94,6 @@ void process_input(struct command* input) {
             sprintf(input->args[i], "%d", getpid());
         }
     }
-
-    // Search for trailing & for background
-    if(input->args[input->arg_count - 1][0] == '&') {
-        input->background = true;
-    }
-
 
     // Save the relevant number of arguments (for exec) in the struct
     input->arg_count = new_arg_count;

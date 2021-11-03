@@ -16,11 +16,11 @@ int main(int argc, char *argv[])
         // Print colon & get input
         struct command input = getCommand();
 
-        //Tokenize input
-
         // Check for built-in & comments/blanks
+        bool built_in = exec_built_in(input)
 
         // If not, fork and exec
+        //if(built_in = false)
 
         // If not forked, waitPID
     }

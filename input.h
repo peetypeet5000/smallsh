@@ -8,7 +8,7 @@
 #include <unistd.h>
 
 struct command {
-    char* args[20];
+    char* args[512];
     int arg_count;
     char input_redirection[255];
     char output_redirection[255];
