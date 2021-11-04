@@ -11,6 +11,7 @@
 #include "exec.h"
 
 struct shell {
+    bool done;
     char cwd[2048];
     int last_exit;
     bool background_disabled;

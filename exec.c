@@ -12,6 +12,7 @@ int exec_command(struct command* input, struct shell* enviroment) {
     } else if((int)pid > 0) {
         // Save the processes PID
         enviroment->background_processes[enviroment->num_background_processes] = (int)pid;
+        enviroment->num_background_processes++;
     // If the child, exec child program
     } else {
         // First, process redirection
@@ -62,6 +63,27 @@ bool process_redirection(struct command* input) {
     return true;
 }
 
+
+
+void check_background_processes(struct shell* enviroment) {
+    for(int i = 0; i < enviroment->num_background_processes; i++) {
+        // Ensure the PID hasn't already been waited and set back to 0
+        if(enviroment->background_processes[i] != 0) {
+            // Wait the process without hangning
+            int exit_code;
+            int done = waitpid(enviroment->background_processes[i], &exit_code, WNOHANG);
+
+            // If the process is actually done, it will return the positive PID
+            if(done > 0) { 
+                printf("background pid %d is done: terminated by signal %d", enviroment->background_processes[i], exit_code);
+                enviroment->background_processes[i] = 0;    // set to 0 so not checked again
+            }
+        }
+    }
+}
+
+
+
 bool exec_built_in(struct command* input, struct shell* enviroment) {
     // Check the first argument for one of the built-in commands
     if(strncmp(input->args[0], "exit", 4) == 0) {
@@ -108,8 +130,20 @@ void status(struct shell* enviroment) {
 }
 
 
+// Kills remaining processes before setting
+// value that will end loop
 void exit_shell(struct shell* enviroment) {
-    printf("exiting...");
-    fflush(stdout);
-    exit(0);
+    int exit;
+
+    // Kill all remiaining processes
+    for(int i = 0; i < enviroment->num_background_processes; i++) {
+        if(enviroment->background_processes[i] != 0) {
+            // Send SIGTERM to all open background processes
+            kill(enviroment->background_processes[i], SIGTERM);
+            // Wait to clean mem
+            waitpid(enviroment->background_processes[i], &exit, 0);
+        }
+    }
+
+    enviroment->done = true;
 }

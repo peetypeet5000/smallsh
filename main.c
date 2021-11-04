@@ -12,8 +12,9 @@ int main(int argc, char *argv[])
     struct shell enviroment = init();
 
     // Keep looping until user is done
-    while(done != true) {
+    while(enviroment.done != true) {
         // Check for background processes ending
+        check_background_processes(&enviroment);
 
         // Print colon & get input
         struct command input = getCommand();
