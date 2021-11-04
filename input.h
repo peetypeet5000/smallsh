@@ -14,6 +14,7 @@ struct command {
     char output_redirection[255];
     bool built_in;
     bool background;
+    int pid;
 };
 
 struct command getCommand();

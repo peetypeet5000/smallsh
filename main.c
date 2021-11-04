@@ -9,6 +9,8 @@ int main(int argc, char *argv[])
     // Start infinite shell argument
     bool done = false;
 
+    struct shell enviroment = init();
+
     // Keep looping until user is done
     while(done != true) {
         // Check for background processes ending
@@ -17,13 +19,23 @@ int main(int argc, char *argv[])
         struct command input = getCommand();
 
         // Check for built-in & comments/blanks
-        bool built_in = exec_built_in(input)
+        bool built_in = exec_built_in(&input, &enviroment);
 
-        // If not, fork and exec
-        //if(built_in = false)
+        // If not built-in, fork and execute
+        if(built_in == false) {
+            int running_pid = exec_command(&input, &enviroment);
+        }
 
-        // If not forked, waitPID
     }
     
     return EXIT_SUCCESS;
+}
+
+
+struct shell init() {
+    struct shell enviroment = {0};
+
+    getcwd(enviroment.cwd, (size_t)2048);
+
+    return enviroment;
 }

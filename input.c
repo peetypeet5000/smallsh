@@ -2,7 +2,7 @@
 
 struct command getCommand() {
     // Print prompt and flush
-    printf("\n: ");
+    printf(": ");
     fflush(stdout);
 
     // Get user input and tokenize it
@@ -10,6 +10,8 @@ struct command getCommand() {
     
     // Process user input into useful stuct
     process_input(&tokenized_input);
+
+    return tokenized_input;
 
 }
 
@@ -67,7 +69,7 @@ void process_input(struct command* input) {
         if(input->args[i][0] == '<'){
             // Make sure there is a value after the redirection
             if(i + 1 < input->arg_count) {
-                strncpy(input->input_redirection, input->args[i+1], strlen(input->args[i+1]));
+                strncpy(input->input_redirection, input->args[i+1], 255);
                 // Subtract off the two arguments that are related to redirection
                 new_arg_count = new_arg_count - 2;
             }
@@ -79,7 +81,7 @@ void process_input(struct command* input) {
         if(input->args[i][0] == '>'){
             // Make sure there is a value after the redirection
             if(i + 1 < input->arg_count) {
-                strncpy(input->output_redirection, input->args[i+1], strlen(input->args[i+1]));
+                strncpy(input->output_redirection, input->args[i+1], 255);
                 new_arg_count = new_arg_count - 2;
             }
         }
@@ -95,7 +97,11 @@ void process_input(struct command* input) {
         }
     }
 
-    // Save the relevant number of arguments (for exec) in the struct
+    // Remove the arguments that were for redirection or bg
+    for(int i = new_arg_count; i < input->arg_count; i++) {
+        free(input->args[i]);
+        input->args[i] = NULL;
+    }
     input->arg_count = new_arg_count;
 
 }
