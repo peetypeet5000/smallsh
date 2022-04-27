@@ -1,3 +1,3 @@
-Use 'make' to compile the program using GCC.
+ Use 'make' to compile the program using GCC.
 
-Once compiled, the program can be ran with ./movies_by_year
+Once compiled, the program can be ran with ./smallsh

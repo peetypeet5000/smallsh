@@ -6,20 +6,37 @@ int exec_command(struct command* input, struct shell* enviroment) {
     pid_t pid = fork();
 
     // If this is the parent (pid is not 0), wait for the child
-    if((int)pid > 0 && input->background == false) {
-        waitpid(pid, &enviroment->last_exit, 0);
+    if((int)pid > 0 && (input->background == false || background_disabled == true)) {
+        int exit_status;
+        waitpid(pid, &exit_status, 0);
+
+        // If ended because of a signal, print that & get signal number
+        if(WIFSIGNALED(exit_status)) {
+            printf("terminated by signal %d\n", WTERMSIG(exit_status));
+            fflush(stdout);
+            enviroment->last_exit = WTERMSIG(exit_status);
+        // Otherwise, save the exit code for status
+        } else {
+            enviroment->last_exit = WEXITSTATUS(exit_status);
+        }
+
+
     // If it's a background process, save to array but don't wait
     } else if((int)pid > 0) {
         // Save the processes PID
+        printf("bacground pid is %d\n", pid);
+        fflush(stdout);
         enviroment->background_processes[enviroment->num_background_processes] = (int)pid;
         enviroment->num_background_processes++;
     // If the child, exec child program
-    } else {
+    } else if (pid == 0){
         // First, process redirection
         bool redir_sucess = process_redirection(input);
 
         // If file redirection worked, continue
         if(redir_sucess == true) {
+            // Set signal handlers
+            set_child_signals(input);
             // Exec child process
             int valid = execvp(input->args[0], input->args);
 
@@ -27,9 +44,17 @@ int exec_command(struct command* input, struct shell* enviroment) {
             if(valid == -1) {
                 perror("execvp");
                 enviroment->last_exit = 1;
+                _Exit(1);
             }
+        // If redirection fails, exit too
+        } else {
+            _Exit(1);
         }
         
+    // Else, there was an error
+    } else {
+        perror("fork");
+        exit(-1);
     }
 
     return (int)pid;
@@ -39,11 +64,12 @@ int exec_command(struct command* input, struct shell* enviroment) {
 bool process_redirection(struct command* input) {
     // If there is a value for input redirection, redirect it
     if(strlen(input->input_redirection) > 0) {
-        int input_fd = open(input->input_redirection, O_RDONLY);
+        int input_fd = open(input->input_redirection, O_RDONLY, 00740);
 
         // If file failed to open, print so and return false
         if (input_fd == -1) {
-            printf("could not open %s for input", input->input_redirection);
+            printf("can not open %s for input\n", input->input_redirection);
+            fflush(stdout);
             return false;
         }
         dup2(input_fd,0);
@@ -51,9 +77,10 @@ bool process_redirection(struct command* input) {
 
     // Same for output redirection
     if(strlen(input->output_redirection) > 0) {
-        int output_fd = open(input->output_redirection, O_WRONLY | O_CREAT);
+        int output_fd = open(input->output_redirection, O_WRONLY | O_CREAT, 00740);
         if (output_fd == -1) {
-            printf("could not open %s for input", input->output_redirection);
+            printf("can not open %s for input\n", input->output_redirection);
+            fflush(stdout);
             return false;
         }
         dup2(output_fd,1);
@@ -75,8 +102,18 @@ void check_background_processes(struct shell* enviroment) {
 
             // If the process is actually done, it will return the positive PID
             if(done > 0) { 
-                printf("background pid %d is done: terminated by signal %d", enviroment->background_processes[i], exit_code);
-                enviroment->background_processes[i] = 0;    // set to 0 so not checked again
+                // If done because of a signal, print the signal
+                if(WIFSIGNALED(exit_code)) {
+                    printf("background pid %d is done. terminated by signal %d\n", enviroment->background_processes[i], WTERMSIG(exit_code));
+                    fflush(stdout);
+                // Otherwise, print that it exited normally
+                } else {
+                    printf("background pid %d is done. exit value %d\n", enviroment->background_processes[i], WEXITSTATUS(exit_code));
+                    fflush(stdout);
+                }
+
+                // either way, set to 0 so not checked again
+                enviroment->background_processes[i] = 0;
             }
         }
     }
@@ -124,7 +161,7 @@ void change_directory(struct command* input) {
 // in the enviroment struct
 void status(struct shell* enviroment) {
     // Print the last exit value
-    printf("exit value %d", enviroment->last_exit);
+    printf("exit value %d\n", enviroment->last_exit);
     // Always fliush the output
     fflush(stdout);
 }
@@ -146,4 +183,34 @@ void exit_shell(struct shell* enviroment) {
     }
 
     enviroment->done = true;
+}
+
+
+// Set SIGINT back to default behavior for child
+// Set SIGSTP to ignore for all children
+void set_child_signals(struct command* input) {
+    // Only set SIGINT to not ignore if it's foreground
+    if(input->background == false || background_disabled == true) {
+        // Initilize struct for SIGINT
+        struct sigaction SIGINT_action = {0};
+
+        // Set to ignore signal, mask all others
+        SIGINT_action.sa_handler = SIG_DFL;
+        sigfillset(&SIGINT_action.sa_mask);
+        SIGINT_action.sa_flags = 0;
+
+        // Set action for SIGINT
+        sigaction(SIGINT, &SIGINT_action, NULL);
+    }
+
+    // Set SIGSTP back to ignore
+    struct sigaction SIGTSTP_action = {0};
+
+    // Set to ignore, mask all others
+    SIGTSTP_action.sa_handler = SIG_IGN;
+    sigfillset(&SIGTSTP_action.sa_mask);
+    SIGTSTP_action.sa_flags = 0;
+
+    // Set action for SIGTSTP
+    sigaction(SIGTSTP, &SIGTSTP_action, NULL);
 }

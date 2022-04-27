@@ -1,9 +1,6 @@
 #include "input.h"
 
 struct command getCommand() {
-    // Print prompt and flush
-    printf(": ");
-    fflush(stdout);
 
     // Get user input and tokenize it
     struct command tokenized_input = tokenize_input();
@@ -18,21 +15,51 @@ struct command getCommand() {
 
 struct command tokenize_input() {
     struct command tokenized_input = {{0}};
-    char* input;
-    size_t size;
+    char* input = {0};
+    size_t size = 0;
     int args_read = 0;
     char *saveptr;
 
     // Get a line of user input
-     getline(&input, &size, stdin);
+    do {
+        printf(": ");
+        fflush(stdout);
+        getline(&input, &size, stdin);
+    } while(strlen(input) < 2);
 
     // Clean the newline character from the input
-    char* clean_input = calloc(strlen(input) - 1, sizeof(char));
-    strncpy(clean_input, input, strlen(input) - 1);
+    input[strlen(input) - 1] = 0;
+
+    // Expand $$
+    for(int i = 0; i < strlen(input); i++) {
+        if(input[i] == '$' && input[i+1] == '$') {
+            // split the string at this point
+            char* first_half = calloc(strlen(input) + 16, sizeof(char));
+            strncpy(first_half, input, i);
+
+            // get second half of the string
+            char* second_half = calloc(strlen(input), sizeof(char));
+            for(int j = 0; j < strlen(input) - i - 1; j++) {
+                second_half[j] = input[i + j + 2];
+            }
+
+            // get the pid
+            char pid[16];
+            sprintf(pid, "%d", getpid());
+
+            strcat(first_half, pid);
+            strcat(first_half, second_half);
+
+            free(input);
+            input = calloc(strlen(first_half), sizeof(char));
+            strncpy(input, first_half, strlen(first_half));
+            break; //only need one deferernace
+        }
+    }
     
 
     // Get first section
-    char *token = strtok_r(clean_input, " ", &saveptr);
+    char *token = strtok_r(input, " ", &saveptr);
 
     // Keep tokenizing until there are no more arguments
     while(token != NULL) {
@@ -56,7 +83,7 @@ void process_input(struct command* input) {
     int new_arg_count = input->arg_count;
 
     // Search for trailing & for background
-    if(input->args[input->arg_count - 1][0] == '&') {
+    if(strcmp(input->args[input->arg_count - 1], "&") == 0) {
         input->background = true;
         // Set redirection to /dev/null by default
         strncpy(input->input_redirection, "/dev/null", strlen("/dev/null"));
@@ -84,16 +111,6 @@ void process_input(struct command* input) {
                 strncpy(input->output_redirection, input->args[i+1], 255);
                 new_arg_count = new_arg_count - 2;
             }
-        }
-    }
-
-    // Expand $$
-    for(int i = 0; i < input->arg_count; i++) {
-        if(strncmp(input->args[i], "$$", 2) == 0){
-            // Get PID
-            free(input->args[i]);
-            input->args[i] = calloc(8, sizeof(char));
-            sprintf(input->args[i], "%d", getpid());
         }
     }
 

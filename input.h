@@ -7,15 +7,7 @@
 #include <stdbool.h>
 #include <unistd.h>
 
-struct command {
-    char* args[512];
-    int arg_count;
-    char input_redirection[255];
-    char output_redirection[255];
-    bool built_in;
-    bool background;
-    int pid;
-};
+#include "main.h"
 
 struct command getCommand();
 struct command tokenize_input();

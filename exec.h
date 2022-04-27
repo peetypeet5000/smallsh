@@ -19,6 +19,7 @@ bool exec_built_in(struct command*, struct shell*);
 void change_directory(struct command*);
 void status(struct shell*);
 void exit_shell(struct shell*);
+void set_child_signals();
 
 
 #endif
